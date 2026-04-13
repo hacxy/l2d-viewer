@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm create:*)",
+      "Bash(mv /Users/hacxy/Projects/l2d-viewer/.claude /tmp/.l2d-viewer-claude)",
+      "Bash(mv /Users/hacxy/Projects/l2d-viewer/.vscode /tmp/.l2d-viewer-vscode)",
+      "Bash(mv /tmp/.l2d-viewer-claude /Users/hacxy/Projects/l2d-viewer/.claude)",
+      "Bash(mv /tmp/.l2d-viewer-vscode /Users/hacxy/Projects/l2d-viewer/.vscode)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm exec:*)",
+      "Bash(xargs cat:*)",
+      "Bash(pnpm build:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm create:*)",
+      "Bash(mv /Users/hacxy/Projects/l2d-viewer/.claude /tmp/.l2d-viewer-claude)",
+      "Bash(mv /Users/hacxy/Projects/l2d-viewer/.vscode /tmp/.l2d-viewer-vscode)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
