@@ -17,6 +17,14 @@ export function useL2D(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const setStatus = useSetAtom(loadingStatusAtom)
   const setError = useSetAtom(loadingErrorAtom)
 
+  // 用 ref 保存最新的 position/scale，供加载时读取，不作为重新加载的触发条件
+  const posXRef = useRef(posX)
+  const posYRef = useRef(posY)
+  const scaleRef = useRef(scale)
+  useEffect(() => { posXRef.current = posX }, [posX])
+  useEffect(() => { posYRef.current = posY }, [posY])
+  useEffect(() => { scaleRef.current = scale }, [scale])
+
   useModelEvents(l2d)
 
   useEffect(() => {
@@ -31,19 +39,20 @@ export function useL2D(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
       l2dRef.current = null
       setL2D(null)
     }
-  }, [])
+  }, [canvasRef])
 
+  // 仅在 modelUrl 变化时触发加载；position/scale 通过 ref 读取最新值
   useEffect(() => {
     if (!modelUrl || !l2dRef.current) return
     setStatus('loading')
     setError(null)
     l2dRef.current
-      .load({ path: modelUrl, position: [posX, posY], scale })
+      .load({ path: modelUrl, position: [posXRef.current, posYRef.current], scale: scaleRef.current })
       .catch((err: Error) => {
         setStatus('error')
         setError(err.message)
       })
-  }, [modelUrl])
+  }, [modelUrl, setStatus, setError])
 
   return l2dRef
 }

@@ -28,5 +28,5 @@ export function useMotionProgress() {
 
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [activeMotion, duration, startTimestamp])
+  }, [activeMotion, duration, startTimestamp, setProgress])
 }

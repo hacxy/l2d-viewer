@@ -55,5 +55,11 @@ export function useModelEvents(l2d: L2D | null) {
     })
     l2d.on('expressionstart', (id) => setActiveExpression(id))
     l2d.on('expressionend', () => setActiveExpression(null))
-  }, [l2d])
+  }, [
+    l2d,
+    setStatus, setProgress, setExpressions, setMotions,
+    setParams, setParamValues,
+    setActiveMotion, setMotionDuration, setMotionProgress, setMotionStartTimestamp,
+    setActiveExpression,
+  ])
 }

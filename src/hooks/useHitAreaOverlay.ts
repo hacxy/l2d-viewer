@@ -19,5 +19,7 @@ export function useHitAreaOverlay(
     }
     rafId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafId)
-  }, [enabled, l2dRef.current])
+    // l2dRef 是稳定的 ref 容器；setHitAreaBounds 是稳定的 Jotai setter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled])
 }

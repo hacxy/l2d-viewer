@@ -14,8 +14,12 @@ export function useDragToReposition(
   const setPosY = useSetAtom(posYAtom)
   const setScale = useSetAtom(scaleAtom)
 
-  // 用 ref 持有最新值，避免 wheel handler 因 deps 变化频繁重建
+  // 用 ref 持有最新值，事件回调中读取，避免 stale closure 也避免频繁重建监听器
+  const posXRef = useRef(posX)
+  const posYRef = useRef(posY)
   const scaleRef = useRef(scale)
+  useEffect(() => { posXRef.current = posX }, [posX])
+  useEffect(() => { posYRef.current = posY }, [posY])
   useEffect(() => { scaleRef.current = scale }, [scale])
 
   const dragState = useRef<{
@@ -34,8 +38,8 @@ export function useDragToReposition(
       dragState.current = {
         startX: e.clientX,
         startY: e.clientY,
-        startPosX: posX,
-        startPosY: posY,
+        startPosX: posXRef.current,
+        startPosY: posYRef.current,
       }
     }
 
@@ -78,5 +82,7 @@ export function useDragToReposition(
       canvas.removeEventListener('pointercancel', onPointerUp)
       canvas.removeEventListener('wheel', onWheel)
     }
-  }, [posX, posY, l2dRef.current])
+    // canvasRef/l2dRef 是稳定的 ref 容器，setPosX/setPosY/setScale 是稳定的 Jotai setter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 }

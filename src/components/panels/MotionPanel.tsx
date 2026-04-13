@@ -1,5 +1,5 @@
 import { Collapse } from 'antd'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { motionsAtom, loadingStatusAtom } from '@/atoms/model'
 import { activeMotionAtom, motionProgressAtom } from '@/atoms/motions'
@@ -14,15 +14,15 @@ export default function MotionPanel() {
   const status = useAtomValue(loadingStatusAtom)
 
   const groups = Object.entries(motions)
-  const [openKeys, setOpenKeys] = useState<string[]>(() => groups.map(([g]) => g))
 
-  // 有动作播放时，确保其所在分组展开
-  useEffect(() => {
-    if (!activeMotion) return
-    setOpenKeys((prev) =>
-      prev.includes(activeMotion.group) ? prev : [...prev, activeMotion.group]
-    )
-  }, [activeMotion?.group])
+  // 用户手动折叠/展开的状态
+  const [userOpenKeys, setUserOpenKeys] = useState<string[]>(() => groups.map(([g]) => g))
+
+  // 派生：有动作播放时，确保其分组始终展开，避免在 effect 中 setState
+  const openKeys =
+    activeMotion?.group && !userOpenKeys.includes(activeMotion.group)
+      ? [...userOpenKeys, activeMotion.group]
+      : userOpenKeys
 
   useMotionProgress()
 
@@ -35,7 +35,7 @@ export default function MotionPanel() {
       size="small"
       bordered={false}
       activeKey={openKeys}
-      onChange={(keys) => setOpenKeys(keys as string[])}
+      onChange={(keys) => setUserOpenKeys(keys as string[])}
       items={groups.map(([group, files]) => ({
         key: group,
         label: group,
