@@ -7,6 +7,8 @@ import { getL2DInstance } from '@/lib/l2dSingleton'
 import { useMotionProgress } from '@/hooks/useMotionProgress'
 import EmptyState from '@/components/shared/EmptyState'
 
+const CLICK_MOTION_PRIORITY = 3
+
 export default function MotionPanel() {
   const motions = useAtomValue(motionsAtom)
   const activeMotion = useAtomValue(activeMotionAtom)
@@ -46,7 +48,7 @@ export default function MotionPanel() {
               return (
                 <div
                   key={index}
-                  onClick={() => getL2DInstance()?.playMotion(group, index)}
+                  onClick={() => getL2DInstance()?.playMotion(group, index, CLICK_MOTION_PRIORITY)}
                   style={{
                     cursor: 'pointer',
                     padding: '5px 12px',
