@@ -14,7 +14,7 @@
 
 ```ts
 import { init } from 'l2d'
-import type { L2D, Options, L2DEventMap } from 'l2d'
+import type { L2D, Options, L2DEventMap, ParamInfo } from 'l2d'
 ```
 
 ### 初始化
@@ -48,6 +48,7 @@ interface Options {
 | `setPosition` | `setPosition(x: number, y: number): void` | 设置模型位置，范围 [-2, 2] |
 | `setScale` | `setScale(scale: number): void` | 设置模型缩放 |
 | `setParams` | `setParams(params: Record<string, number>): void` | 手动设置模型参数值 |
+| `getParams` | `getParams(): ParamInfo[]` | 读取所有参数当前状态，Cubism 2/6 完全对称，每帧调用可实现实时追踪 |
 | `resize` | `resize(): void` | 通知 canvas 尺寸变化 |
 | `getCanvas` | `getCanvas(): HTMLCanvasElement` | 获取 canvas DOM 元素 |
 | `destroy` | `destroy(): void` | 销毁实例，释放 WebGL 资源 |
@@ -70,8 +71,21 @@ interface L2DEventMap {
 }
 ```
 
+### ParamInfo 类型
+
+```ts
+interface ParamInfo {
+  id: string       // 参数 ID，如 "ParamEyeLOpen" / "PARAM_MOUTH_OPEN_Y"
+  value: number    // 当前值（每帧变化）
+  min: number      // 最小值
+  max: number      // 最大值
+  default: number  // 默认值（模型加载后固定不变）
+}
+```
+
 **注意：**
-- `l2d` 没有 `getParams()` 方法，参数面板只能做写入（`setParams`），不能读取当前值
+- `getParams()` 在 Cubism 2 和 Cubism 6 上完全对称，包含 `default` 字段
+- `value !== default` 时说明该参数正被当前动作驱动（活跃参数）
 - `getHitAreaBounds()` 返回的坐标是 0-1 比例值，相对于 canvas 宽高，可直接换算为百分比 CSS 定位
 
 ---
@@ -116,6 +130,7 @@ src/
 │   ├── useModelEvents.ts          # 注册所有 L2D 事件，更新对应 atoms
 │   ├── useHitAreaOverlay.ts       # rAF 循环读取 getHitAreaBounds() → hitAreaBoundsAtom
 │   ├── useMotionProgress.ts       # rAF 循环计算动作播放进度 0-1
+│   ├── useParamsRaf.ts            # rAF 循环轮询 getParams() → paramsAtom
 │   └── useDragToReposition.ts     # canvas 上 pointer 拖拽移动模型
 │
 ├── pages/
@@ -138,7 +153,7 @@ src/
 │   ├── panels/
 │   │   ├── ExpressionPanel.tsx    # 表情列表，激活高亮，点击播放
 │   │   ├── MotionPanel.tsx        # 动作列表（Collapse 分组），进度条，点击切换
-│   │   ├── ParamPanel.tsx         # 参数输入列表，onChange 调 setParams
+│   │   ├── ParamPanel.tsx         # 参数列表：搜索过滤、活跃高亮、滑块调值
 │   │   └── HitAreaPanel.tsx       # HitArea 表格 + overlay 开关
 │   └── shared/
 │       ├── PanelCard.tsx          # 可折叠面板卡片（包装各 panel）
@@ -174,6 +189,7 @@ src/
 
 ```ts
 import { atom } from 'jotai'
+import type { ParamInfo } from 'l2d'
 
 export const modelUrlAtom = atom<string>('')
 export type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error'
@@ -183,8 +199,8 @@ export const loadProgressAtom = atom<{ loaded: number; total: number }>({ loaded
 export const expressionsAtom = atom<string[]>([])
 export const motionsAtom = atom<Record<string, string[]>>({})
 export const hitAreaBoundsAtom = atom<Array<{ name: string; x: number; y: number; w: number; h: number }>>([])
-// 用户手动输入的参数，onChange 时写入 l2d.setParams
-export const paramsAtom = atom<Record<string, number>>({})
+// 由 useParamsRaf rAF 循环轮询 getParams() 写入，每帧更新
+export const paramsAtom = atom<ParamInfo[]>([])
 ```
 
 ### `atoms/viewer.ts`
@@ -376,6 +392,48 @@ useEffect(() => {
 }, [enabled])
 ```
 
+### `hooks/useParamsRaf.ts` 实现思路
+
+```ts
+// 模型 loaded 后启动 rAF 循环，每帧调用 getParams() 写入 paramsAtom
+// 模型 destroy 或 unmount 时停止
+useEffect(() => {
+  if (loadingStatus !== 'loaded') return
+  let rafId: number
+  const loop = () => {
+    const params = getL2DInstance()?.getParams() ?? []
+    setParams(params)
+    rafId = requestAnimationFrame(loop)
+  }
+  rafId = requestAnimationFrame(loop)
+  return () => cancelAnimationFrame(rafId)
+}, [loadingStatus])
+```
+
+### `components/panels/ParamPanel.tsx` 设计
+
+**三个功能组合：**
+
+1. **搜索过滤**：顶部 Input 按 `id` 文字过滤参数列表
+2. **活跃高亮**：`Math.abs(value - default) > 0.001` 时标记为活跃（蓝色左边框/标识），帮助用户在播放动作时快速识别被驱动的参数
+3. **滑块调值**：每行一个 AntD Slider，范围 `[min, max]`，`onChange` 调用 `l2d.setParams({ [id]: newValue })`；行尾有"重置"按钮恢复 `default`
+
+```tsx
+// 每行结构（伪代码）
+<div className={isActive ? 'param-row active' : 'param-row'}>
+  <span className="param-id">{param.id}</span>
+  <Slider
+    min={param.min} max={param.max} step={(param.max - param.min) / 200}
+    value={param.value}
+    onChange={(v) => l2d.setParams({ [param.id]: v })}
+  />
+  <span className="param-value">{param.value.toFixed(3)}</span>
+  <Button size="small" onClick={() => l2d.setParams({ [param.id]: param.default })}>↺</Button>
+</div>
+```
+
+**活跃判断阈值 0.001**：避免浮点精度噪音导致静止参数闪烁。
+
 ### `hooks/useDragToReposition.ts` 实现思路
 
 ```ts
@@ -443,18 +501,19 @@ useEffect(() => {
 ### Phase 5 — 调试面板
 19. 实现 `components/panels/ExpressionPanel.tsx`（含"随机"按钮）
 20. 实现 `hooks/useMotionProgress.ts` + `components/panels/MotionPanel.tsx`
-21. 实现 `components/panels/ParamPanel.tsx`
-22. 实现 `hooks/useHitAreaOverlay.ts` + `components/canvas/HitAreaOverlay.tsx` + `components/panels/HitAreaPanel.tsx`
+21. 实现 `hooks/useParamsRaf.ts`（rAF 循环轮询 `getParams()` → `paramsAtom`）
+22. 实现 `components/panels/ParamPanel.tsx`（搜索过滤 + 活跃高亮 + 滑块调值 + 重置按钮）
+23. 实现 `hooks/useHitAreaOverlay.ts` + `components/canvas/HitAreaOverlay.tsx` + `components/panels/HitAreaPanel.tsx`
 
 ### Phase 6 — 布局与体验
-23. 实现 `components/layout/Sidebar.tsx`（AntD Sider，可折叠，PanelCard 包装各面板）
-24. 实现 `components/shared/PanelCard.tsx` + `EmptyState.tsx`
-25. 实现 `hooks/useDragToReposition.ts`，接入 CanvasStage
-26. 实现主题切换（TopBar 中的 ThemeToggle 按钮，写 themeAtom）
-27. 实现 URL 历史持久化（atomWithStorage，去重，最多 20 条）
-28. 实现导出配置功能（TopBar 或 Sidebar 中的"Export Config"按钮，下载 `l2d-config.json`）
-29. 错误处理 UI（CanvasStage 中条件渲染 AntD `Result` 组件）
-30. 小屏响应式（`Grid.useBreakpoint()`，小屏时 Sider 改为底部 `Drawer`）
+24. 实现 `components/layout/Sidebar.tsx`（AntD Sider，可折叠，PanelCard 包装各面板）
+25. 实现 `components/shared/PanelCard.tsx` + `EmptyState.tsx`
+26. 实现 `hooks/useDragToReposition.ts`，接入 CanvasStage
+27. 实现主题切换（TopBar 中的 ThemeToggle 按钮，写 themeAtom）
+28. 实现 URL 历史持久化（atomWithStorage，去重，最多 20 条）
+29. 实现导出配置功能（TopBar 或 Sidebar 中的"Export Config"按钮，下载 `l2d-config.json`）
+30. 错误处理 UI（CanvasStage 中条件渲染 AntD `Result` 组件）
+31. 小屏响应式（`Grid.useBreakpoint()`，小屏时 Sider 改为底部 `Drawer`）
 
 ---
 
@@ -469,6 +528,9 @@ pnpm dev   # 启动开发服务器，访问 http://localhost:5173
 3. 拖动 x/y/scale 滑块，模型实时变化，代码预览实时更新，复制按钮可用
 4. 点击表情条目，验证表情激活高亮
 5. 点击动作条目，验证进度条和激活状态
+5a. 播放动作期间，验证参数面板中被驱动的参数自动高亮（蓝色标识）
+5b. 拖动参数滑块，验证模型对应部位实时响应，点击"↺"恢复 default
+5c. 参数搜索框输入关键字，验证列表过滤正常
 6. 开启 Hit Area 覆盖层开关，验证边界框显示在正确位置
 7. 刷新页面，验证 `?model=` query string 自动触发加载
 8. 拖拽 canvas 上的模型，验证位置跟随鼠标变化

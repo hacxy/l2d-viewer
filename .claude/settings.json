@@ -11,7 +11,16 @@
       "Bash(pnpm remove:*)",
       "Bash(pnpm exec:*)",
       "Bash(xargs cat:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Read(//Users/hacxy/Projects/l2d/**)",
+      "Read(//Users/hacxy/Projects/l2d/dist/**)",
+      "Bash(grep -n \"getParams\" /Users/hacxy/Projects/l2d/src/*.ts)",
+      "Bash(grep -n '_$pb\\\\|ParamDef\\\\|paramDef\\\\|paramId\\\\|_$pb\\\\[' /Users/hacxy/Projects/l2d/src/vendor/cubism2/index.js)",
+      "Bash(grep -n '_$pb' /Users/hacxy/Projects/l2d/src/vendor/cubism2/Live2DFramework.js)",
+      "Bash(grep -rn '_$pb' /Users/hacxy/Projects/l2d/src/vendor/cubism2/)",
+      "Bash(grep -n 'getModelContext\\\\|modelContext\\\\|_$pb\\\\|parameterDef\\\\|_$Rr\\\\|_$Or\\\\|_$vr\\\\|_$_2' /Users/hacxy/Projects/l2d/src/vendor/cubism2/LAppModel.js)",
+      "Bash(grep -rn 'getModelContext\\\\|_$pb\\\\|parameterDef' /Users/hacxy/Projects/l2d/ '--include=*.js' --exclude-dir=node_modules)",
+      "Bash(grep -o '._\\\\$pb[^;]*;' /Users/hacxy/Projects/l2d/src/vendor/lib/cubism2.js)"
     ],
     "additionalDirectories": [
       "/tmp"

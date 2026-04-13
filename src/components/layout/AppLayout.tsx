@@ -2,6 +2,8 @@ import { Layout } from 'antd'
 import type { ReactNode } from 'react'
 import TopBar from './TopBar'
 import Sidebar from './Sidebar'
+import LeftSidebar from './LeftSidebar'
+import BottomPanel from './BottomPanel'
 
 const { Header, Content } = Layout
 
@@ -23,11 +25,15 @@ export default function AppLayout({ children }: Props) {
       >
         <TopBar />
       </Header>
-      <Layout style={{ flex: 1, overflow: 'hidden' }}>
-        <Content style={{ overflow: 'hidden', position: 'relative' }}>
-          {children}
-        </Content>
-        <Sidebar />
+      <Layout style={{ flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
+        <Layout style={{ flex: 1, overflow: 'hidden' }}>
+          <LeftSidebar />
+          <Content style={{ overflow: 'hidden', position: 'relative' }}>
+            {children}
+          </Content>
+          <Sidebar />
+        </Layout>
+        <BottomPanel />
       </Layout>
     </Layout>
   )

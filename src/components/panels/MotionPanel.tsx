@@ -1,4 +1,5 @@
-import { Collapse, List, Progress, Tag } from 'antd'
+import { Collapse } from 'antd'
+import { useState, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
 import { motionsAtom, loadingStatusAtom } from '@/atoms/model'
 import { activeMotionAtom, motionProgressAtom } from '@/atoms/motions'
@@ -12,48 +13,62 @@ export default function MotionPanel() {
   const progress = useAtomValue(motionProgressAtom)
   const status = useAtomValue(loadingStatusAtom)
 
+  const groups = Object.entries(motions)
+  const [openKeys, setOpenKeys] = useState<string[]>(() => groups.map(([g]) => g))
+
+  // 有动作播放时，确保其所在分组展开
+  useEffect(() => {
+    if (!activeMotion) return
+    setOpenKeys((prev) =>
+      prev.includes(activeMotion.group) ? prev : [...prev, activeMotion.group]
+    )
+  }, [activeMotion?.group])
+
   useMotionProgress()
 
   if (status !== 'loaded') return <EmptyState />
 
-  const groups = Object.entries(motions)
+  const pct = Math.min(progress * 100, 100)
 
   return (
-    <div>
-      {activeMotion && (
-        <div style={{ padding: '4px 16px 8px' }}>
-          <Progress percent={Math.round(progress * 100)} size="small" showInfo={false} />
-        </div>
-      )}
-      <Collapse
-        size="small"
-        bordered={false}
-        items={groups.map(([group, files]) => ({
-          key: group,
-          label: group,
-          children: (
-            <List
-              size="small"
-              dataSource={files}
-              renderItem={(file, index) => {
-                const isActive = activeMotion?.group === group && activeMotion?.index === index
-                return (
-                  <List.Item
-                    style={{ cursor: 'pointer', padding: '4px 8px' }}
-                    onClick={() => getL2DInstance()?.playMotion(group, index)}
-                  >
-                    {isActive ? (
-                      <Tag color="green">{file.split('/').pop()}</Tag>
-                    ) : (
-                      <span style={{ fontSize: 12 }}>{file.split('/').pop()}</span>
-                    )}
-                  </List.Item>
-                )
-              }}
-            />
-          ),
-        }))}
-      />
-    </div>
+    <Collapse
+      size="small"
+      bordered={false}
+      activeKey={openKeys}
+      onChange={(keys) => setOpenKeys(keys as string[])}
+      items={groups.map(([group, files]) => ({
+        key: group,
+        label: group,
+        children: (
+          <div>
+            {files.map((file, index) => {
+              const isActive = activeMotion?.group === group && activeMotion?.index === index
+              return (
+                <div
+                  key={index}
+                  onClick={() => getL2DInstance()?.playMotion(group, index)}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '5px 12px',
+                    fontSize: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: isActive
+                      ? `linear-gradient(to right, rgba(0,255,128,0.22) ${pct}%, transparent ${pct}%)`
+                      : 'transparent',
+                    color: isActive ? 'rgba(0,255,128,0.95)' : undefined,
+                    fontWeight: isActive ? 600 : undefined,
+                    borderRadius: 4,
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {file.split('/').pop()}
+                </div>
+              )
+            })}
+          </div>
+        ),
+      }))}
+    />
   )
 }
