@@ -18,8 +18,8 @@ importers:
         specifier: ^2.19.1
         version: 2.19.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.5)
       l2d:
-        specifier: file:../l2d/
-        version: file:../l2d
+        specifier: ^2.1.0
+        version: 2.1.0
       react:
         specifier: ^19.2.4
         version: 19.2.5
@@ -1068,8 +1068,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  l2d@file:../l2d:
-    resolution: {directory: ../l2d, type: directory}
+  l2d@2.1.0:
+    resolution: {integrity: sha512-Fhl/Lyw4a/uD4sdp8chWvEs1Q5oSqfynpO9EP4uMmqR3kmFTkd72zSmMFiNTFByOk2mljYPKHVvbFVHTigGDMA==}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -2512,7 +2512,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  l2d@file:../l2d: {}
+  l2d@2.1.0: {}
 
   levn@0.4.1:
     dependencies:
